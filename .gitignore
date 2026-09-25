@@ -1,0 +1,5 @@
+# Never publish client material or local archives
+*.pptx
+*.pdf
+*.zip
+.env

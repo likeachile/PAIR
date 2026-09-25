@@ -456,20 +456,43 @@ async function readPdf(file) {
     }
     blocks.forEach(b => { b.paras = b.text.split("\n").map(t => ({ text: t, lvl: 0, bullet: /^[•\-–▪■●]/.test(t) })); });
 
-    // Images and vector paths from the operator list (tracking the transform matrix)
+    // Images and vector shapes from the operator list, in page coordinates (top-left origin)
     const ops = await page.getOperatorList();
-    let ctm = [1, 0, 0, 1, 0, 0]; const stack = []; let imgArea = 0, imgs = 0, paths = 0;
     const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+    const P = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+    const bbox = pts => { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); const x = Math.min(...xs), y = Math.min(...ys); return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }; };
+    const pageA = vp.width * vp.height;
+    let ctm = vp.transform.slice(); const stack = []; const images = [], shapes = [];
     for (let k = 0; k < ops.fnArray.length; k++) {
       const fn = ops.fnArray[k];
       if (fn === O.save) stack.push(ctm);
       else if (fn === O.restore) ctm = stack.pop() || ctm;
       else if (fn === O.transform) ctm = mul(ctm, ops.argsArray[k]);
       else if (fn === O.paintImageXObject || fn === O.paintJpegXObject || fn === O.paintInlineImageXObject) {
-        const a = Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2]);
-        if (a > vp.width * vp.height * 0.01) { imgs++; imgArea += a; }
-      } else if (fn === O.constructPath) paths++;
+        const b = bbox([[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y]) => P(ctm, x, y)));
+        if (b.w * b.h > pageA * 0.01) images.push(b);
+      } else if (fn === O.constructPath) {
+        // Each closed sub-path becomes a shape bounding box (boxes, chevrons, ellipses); thin lines are skipped
+        const [pops, pargs] = ops.argsArray[k]; let j = 0, cur = [];
+        const flush = () => { if (cur.length >= 3) { const b = bbox(cur); if (b.w > 6 && b.h > 6) shapes.push(b); } cur = []; };
+        for (const op of pops) {
+          if (op === O.rectangle) { const [x, y, w, h] = pargs.slice(j, j + 4); j += 4; flush(); const b = bbox([P(ctm, x, y), P(ctm, x + w, y + h)]); if (b.w > 6 && b.h > 6) shapes.push(b); }
+          else if (op === O.moveTo) { flush(); cur.push(P(ctm, pargs[j], pargs[j + 1])); j += 2; }
+          else if (op === O.lineTo) { cur.push(P(ctm, pargs[j], pargs[j + 1])); j += 2; }
+          else if (op === O.curveTo) { for (let t = 0; t < 3; t++) cur.push(P(ctm, pargs[j + 2 * t], pargs[j + 2 * t + 1])); j += 6; }
+          else if (op === O.curveTo2 || op === O.curveTo3) { cur.push(P(ctm, pargs[j], pargs[j + 1]), P(ctm, pargs[j + 2], pargs[j + 3])); j += 4; }
+          else if (op === O.closePath) flush();
+        }
+        flush();
+      }
     }
+    // Drop duplicate outlines (fill + stroke of the same shape)
+    const seen = new Set();
+    const uniq = shapes.filter(b => { const k = [b.x, b.y, b.w, b.h].map(v => Math.round(v / 3)).join(","); if (seen.has(k)) return false; seen.add(k); return true; });
+    const inRect = (r, b) => { const cx = b.x + b.w / 2, cy = b.y + b.h / 2; return cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h; };
+    const wordsIn = r => runs.filter(t => inRect(r, t)).reduce((a, t) => a + words(t.text), 0);
+    // Full-page images are template backgrounds: text drawn over them is perfectly readable
+    const imgs = images.filter(b => b.w * b.h < pageA * 0.85).map(b => ({ ...b, words: wordsIn(b), share: b.w * b.h / pageA }));
     const canvas = document.createElement("canvas");
     const scale = 900 / vp.width;
     const v2 = page.getViewport({ scale });
@@ -477,8 +500,8 @@ async function readPdf(file) {
     await page.render({ canvasContext: canvas.getContext("2d"), viewport: v2 }).promise;
     const raw = runs.map(r => r.text).join(" ").replace(/\s+\n/g, "\n");
     slides.push({ n: i, items: blocks, raw: tc.items.map(t => t.str + (t.hasEOL ? "\n" : "")).join("").trim() || raw,
-                  thumb: canvas.toDataURL("image/jpeg", 0.85), imgCoverage: Math.min(1, imgArea / (vp.width * vp.height)), imgs, paths,
-                  W: vp.width, H: vp.height });
+                  thumb: canvas.toDataURL("image/jpeg", 0.85), imgs, anyImage: images.length > 0,
+                  shapes: uniq.filter(b => b.w * b.h > pageA * 0.002 && b.w * b.h < pageA * 0.5), W: vp.width, H: vp.height });
   }
   markChrome(slides);
   for (const s of slides) {
@@ -698,6 +721,55 @@ function detectDiagram(s, u) {
   return { lines, excerpt: [...steps, ...groups.flatMap(g => [g.c]), ...txt.filter(i => words(i.text) <= 6)].map(i => norm(i.text)).filter(Boolean) };
 }
 
+/* PDF diagrams: the file has no shape structure left, so rebuild it from vector outlines.
+   Each short label belongs to the smallest shape around it. A shape holding several labels is a group;
+   three or more single-label shapes on one line, not part of a grid, are a sequence. */
+function detectPdfDiagram(s) {
+  const labels = s.items.filter(b => !b.chrome && words(b.text) <= 8);
+  if (labels.length < 3 || !s.shapes.length) return null;
+  const ctr = b => [b.x + b.w / 2, b.y + b.h / 2];
+  const holds = (r, b) => { const [cx, cy] = ctr(b); return cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h && r.w * r.h > b.w * b.h * 0.8; };
+  const area = r => r.w * r.h;
+  const home = new Map(labels.map(l => [l, s.shapes.filter(r => holds(r, l)).sort((a, b) => area(a) - area(b))[0]]));
+  const txt = l => norm(l.text).replace(/\n/g, " ");
+  const lines = [], used = new Set();
+
+  // Sequences: single-label shapes of similar size on one row (or column)
+  const nodes = s.shapes.filter(r => labels.filter(l => home.get(l) === r).length === 1)
+    .map(r => ({ r, label: labels.find(l => home.get(l) === r) }));
+  const rows = [];
+  for (const n of nodes) {
+    const row = rows.find(g => Math.abs(ctr(g[0].r)[1] - ctr(n.r)[1]) < n.r.h * 0.3 && Math.abs(g[0].r.h - n.r.h) < n.r.h * 0.3);
+    row ? row.push(n) : rows.push([n]);
+  }
+  for (const row of rows.filter(g => g.length >= 3)) {
+    // In a grid (table), other rows share the same columns: that is a table, not a process
+    const xs = row.map(n => ctr(n.r)[0]);
+    const grid = rows.some(g => g !== row && g.filter(n => xs.some(x => Math.abs(ctr(n.r)[0] - x) < n.r.w * 0.3)).length >= 2);
+    if (grid) continue;
+    row.sort((a, b) => a.r.x - b.r.x);
+    lines.push(`Sequence, left to right: ${row.map((n, k) => `${k + 1}. ${txt(n.label)}`).join(" → ")}`);
+    row.forEach(n => used.add(n.label));
+  }
+
+  // Groups: a shape (not too big) holding 2-10 labels, titled by the label on its top edge
+  const groups = s.shapes.filter(r => area(r) < s.W * s.H * 0.35)
+    .map(r => ({ r, members: labels.filter(l => holds(r, l)) }))
+    .filter(g => g.members.length >= 2 && g.members.length <= 10)
+    .sort((a, b) => area(a.r) - area(b.r));
+  for (const g of groups) {
+    const fresh = g.members.filter(l => !used.has(l));
+    if (fresh.length < 2) continue;
+    const title = fresh.find(l => l.y - g.r.y < g.r.h * 0.2 && home.get(l) === g.r) || null;
+    const rest = fresh.filter(l => l !== title).sort((a, b) => a.y - b.y || a.x - b.x);
+    if (rest.length < (title ? 1 : 2)) continue;
+    lines.push(`${title ? txt(title) : "Grouped together"}: ${rest.map(txt).join("; ")}`);
+    fresh.forEach(l => used.add(l));
+  }
+  if (!lines.length) return null;
+  return { lines, excerpt: labels.map(txt) };
+}
+
 // The sentence (or line) around a match, trimmed to a readable length
 function contextOf(text, idx, len) {
   // Sentence ends: newline, or ". " followed by a capital (so "excl. VAT" does not cut)
@@ -779,16 +851,11 @@ function analyse(deck) {
     }
 
     // Diagrams: groups, links and sequences carried by shapes
-    const dg = deck.kind === "pptx" ? detectDiagram(s, u) : null;
+    const dg = deck.kind === "pptx" ? detectDiagram(s, u) : detectPdfDiagram(s);
     if (dg) add(s, { type: "Diagram, no text", severity: "medium", title: "Structure carried by boxes, lines and arrows",
       ai_reads: dg.excerpt.join(" ").slice(0, 400),
       lost: "The extractor returns the labels as a flat list. Who belongs to which group, what links to what, and the order of steps are lost.",
       proposal: `Diagram on slide ${s.n}, as text:\n${dg.lines.map(l => "• " + l).join("\n")}` });
-    if (deck.kind === "pdf" && s.paths > 40 && s.items.filter(b => words(b.text) <= 4).length >= 6)
-      add(s, { type: "Diagram, no text", severity: "medium", title: `Vector diagram (${s.paths} drawn paths) with short labels`,
-        ai_reads: s.items.filter(b => words(b.text) <= 4).map(b => norm(b.text)).join(" ").slice(0, 400),
-        lost: "Arrows, boxes and lines carry the meaning; the extractor only sees scattered labels.",
-        proposal: `Diagram on slide ${s.n}: [describe how these elements relate: ${s.items.filter(b => words(b.text) <= 4).slice(0, 8).map(b => norm(b.text)).join(", ")}]` });
 
     // Pictures without a text alternative
     const pics = s.items.filter(i => i.kind === "pic" && !i.chrome && i.w > u * 3 && i.h > u * 2);
@@ -796,10 +863,18 @@ function analyse(deck) {
       ai_reads: "[image]" + (p.descr ? ` alt: ${p.descr}` : " — no text layer —"),
       lost: "Anything written or shown in the picture (a quote, a screenshot, a logo wall, a figure) is invisible to a text extractor.",
       proposal: p.descr ? `Image on slide ${s.n}: ${p.descr}` : `Image on slide ${s.n}: [describe what the image shows, and copy any text or figures it contains]` });
-    if (deck.kind === "pdf" && s.imgCoverage > 0.25 && words(s.raw) < 60)
-      add(s, { type: "Text in image", severity: "high", title: `Images cover ${Math.round(s.imgCoverage * 100)}% of the page, little text`,
-        ai_reads: s.raw.slice(0, 300) || "(no text)", lost: "The message of this page is inside images. A text extractor returns almost nothing.",
-        proposal: `Page ${s.n}: [describe what the images show, and copy any text or figures they contain]` });
+    if (deck.kind === "pdf") {
+      if (s.anyImage && words(s.raw) < 5)
+        // Scanned or flattened page: nothing to extract at all
+        add(s, { type: "Text in image", severity: "high", title: "Page is an image: no text layer",
+          ai_reads: s.raw || "(no text)", lost: "The whole page is a picture (scanned or flattened on export). A text extractor returns nothing, so the page does not exist for the client's assistant.",
+          proposal: `Page ${s.n}: [copy the text of this page]` });
+      else for (const im of s.imgs.filter(b => b.share > 0.15 && b.words < 8))
+        // A large picture with no text drawn over it: a screenshot, a chart image, a quote card…
+        add(s, { type: "Text in image", severity: "medium", title: `Picture covering ${Math.round(im.share * 100)}% of the page, no text layer on it`,
+          ai_reads: "[image] — no text layer —", lost: "If this picture contains words or figures (a screenshot, a chart exported as an image, a quote), they are invisible to a text extractor. If it is purely decorative, keep it as is.",
+          proposal: `Image on page ${s.n}: [describe what the image shows, and copy any text or figures it contains]` });
+    }
 
     // Reading order: extractor order differs from the order a reader follows
     const subst = content.filter(i => i.kind === "text" && words(i.text) >= 12);
