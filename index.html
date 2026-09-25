@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portolan AI-Ready</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="vendor/jszip.min.js"></script>
+<style>
+:root{--ink:#1c2530;--soft:#56606b;--paper:#f3efe6;--card:#faf8f3;--line:rgba(28,37,48,.18);
+  --red:oklch(0.56 0.13 35);--red-d:oklch(0.48 0.13 35);--teal:oklch(0.56 0.13 190);--teal-d:oklch(0.45 0.13 190);
+  --serif:'Instrument Serif',Georgia,serif;--mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;--sans:'IBM Plex Sans',system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit}
+textarea:focus{outline:none}
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+.eyebrow.red{color:var(--red-d)}.eyebrow.teal{color:var(--teal-d)}
+.btn{padding:13px 20px;background:var(--ink);color:var(--paper);border:none;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.btn:hover{background:oklch(0.45 0.13 35)}
+.btn.teal:hover{background:var(--teal-d)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid rgba(28,37,48,.35)}
+.btn.ghost:hover{background:var(--card)}
+.btn.link{background:transparent;color:var(--soft);padding:13px 8px;text-decoration:underline}
+.btn:disabled{opacity:.4;cursor:default}
+.app{min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px;padding:20px 32px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:14px}
+.diamond{width:14px;height:14px;transform:rotate(45deg);border:1.5px solid var(--ink);align-self:center}
+.logo{font-family:var(--serif);font-size:30px;line-height:1}
+nav{display:flex;flex-wrap:wrap;gap:4px}
+nav button{display:flex;align-items:baseline;gap:8px;padding:8px 12px;border:none;border-bottom:2px solid transparent;background:transparent;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--soft);cursor:pointer}
+nav button span+span{font-family:var(--sans);letter-spacing:0}
+nav button.on{color:var(--ink);border-bottom-color:var(--ink)}
+nav button:disabled{color:rgba(28,37,48,.3);cursor:default}
+main{flex:1;width:100%;margin:0 auto}
+h1,h2{font-family:var(--serif);font-weight:400;margin:0}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.hatch{background:repeating-linear-gradient(135deg,var(--red) 0 1.5px,transparent 1.5px 3.5px);border:1px solid var(--red)}
+.drop{position:relative;min-height:300px;width:100%;border:1.5px dashed rgba(28,37,48,.4);background:oklch(0.93 0.022 215);background-image:linear-gradient(rgba(28,37,48,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(28,37,48,.07) 1px,transparent 1px);background-size:40px 40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;padding:32px}
+.drop:hover,.drop.over{border-color:var(--ink);border-style:solid}
+.note{display:flex;flex-direction:column;gap:6px;padding:16px 20px;background:var(--card);border:1px solid var(--line);font-size:14px;line-height:1.5;color:#3b4550}
+.err{color:var(--red-d);font-family:var(--mono);font-size:13px}
+.log{display:flex;flex-direction:column;gap:8px;font-family:var(--mono);font-size:13px;line-height:1.5}
+.log div{display:flex;gap:12px}.log .t{color:var(--soft);flex:none}.log .w{color:var(--red-d)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;align-content:start}
+.tile{aspect-ratio:16/10;border:1px solid rgba(28,37,48,.12);position:relative;display:flex;align-items:flex-end;padding:6px;transition:all .3s;font-family:var(--mono);font-size:10px;color:rgba(28,37,48,.3)}
+.tile.done{background:var(--card);border-color:rgba(28,37,48,.35);color:var(--ink)}
+.tile.risk{background:#fbeee9;border-color:oklch(0.56 0.13 35 / .6)}
+.tile.risk::after{content:"";position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:var(--red)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:18px}
+.thumb{position:relative;aspect-ratio:16/9;background:#fff;border:1px solid rgba(28,37,48,.2);padding:0;overflow:hidden;box-shadow:4px 4px 0 rgba(28,37,48,.06);width:100%;display:block}
+.thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.thumb .veil{position:absolute;inset:0;background:repeating-linear-gradient(135deg,oklch(0.56 0.13 35 / .38) 0 1px,transparent 1px 6px),rgba(246,242,232,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;text-align:center}
+.badge{width:30px;height:30px;border-radius:50%;background:var(--red);color:var(--card);font-family:var(--mono);font-size:12px;display:flex;align-items:center;justify-content:center}
+.check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+.cap{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--soft);margin-top:8px}
+.cap span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meter{height:4px;background:rgba(28,37,48,.12);position:relative}.meter div{position:absolute;left:0;top:0;bottom:0;transition:width .5s}
+.review{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr)}
+.review aside{border-right:1px solid var(--line);min-width:0}
+.side{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:14px 24px;border:none;border-bottom:1px solid rgba(28,37,48,.1);background:transparent;cursor:pointer;width:100%}
+.side:hover,.side.on{background:var(--card)}
+.side .n{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--card);font-family:var(--mono);font-size:11px}
+.side small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin-bottom:3px}
+.side span{font-size:13.5px;line-height:1.35}
+.slidebox{aspect-ratio:16/9;background:#fff;border:1px solid rgba(28,37,48,.2);box-shadow:6px 6px 0 rgba(28,37,48,.08)}
+.slidebox img{width:100%;height:100%;object-fit:contain;display:block}
+pre.raw{margin:0;padding:16px 18px;background:var(--ink);color:#d9dde1;font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre-wrap;max-height:260px;overflow:auto}
+textarea.stmt{width:100%;padding:18px;border:1.5px solid var(--teal);background:var(--card);font-family:var(--sans);font-size:15px;line-height:1.55;color:var(--ink);resize:vertical}
+.tabs button{padding:14px 20px;border:none;border-bottom:2px solid transparent;background:transparent;font-family:var(--mono);font-size:12px;cursor:pointer;white-space:nowrap}
+.tabs button.on{border-bottom-color:var(--ink)}
+pre.out{margin:0;padding:24px 26px;max-height:640px;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:1.65;white-space:pre-wrap}
+@media (max-width:760px){.review{grid-template-columns:1fr}.review aside{border-right:none;border-bottom:1px solid var(--line);max-height:320px;overflow:auto}header{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="diamond"></div>
+      <div class="logo">Portolan</div>
+      <div class="eyebrow" style="font-size:11px;letter-spacing:.14em;white-space:nowrap">AI-ready proposal charts · POC</div>
+    </div>
+    <nav id="nav"></nav>
+  </header>
+  <main id="main"></main>
+</div>
+<input type="file" id="file" accept=".pptx,.pdf" hidden>
+
+<script>
+"use strict";
+// pdf.js is loaded on demand, with its worker code on the main thread (no Web Worker): works on GitHub Pages and from file://
+const loadScript = src => new Promise((ok, ko) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => ko(new Error("Could not load " + src)); document.head.appendChild(s); });
+async function ensurePdfJs() {
+  if (!window.pdfjsLib) await loadScript("vendor/pdf.min.js");
+  if (!window.pdfjsWorker) await loadScript("vendor/pdf.worker.min.js");
+}
+
+/* ============================================================================
+   1. Helpers
+   ========================================================================== */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s || "").replace(/\s+/g, " ").trim();
+const words = s => norm(s).split(" ").filter(Boolean).length;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const EMU_CM = 360000;
+const cm = v => v / EMU_CM;
+const q = (el, name) => el ? Array.from(el.getElementsByTagNameNS("*", name)) : [];
+const q1 = (el, name) => q(el, name)[0] || null;
+const kids = (el, name) => el ? Array.from(el.children).filter(c => c.localName === name) : [];
+const kid = (el, name) => kids(el, name)[0] || null;
+const xml = s => new DOMParser().parseFromString(s, "application/xml");
+const slug = s => String(s).replace(/\.[^.]+$/, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "proposal";
+const fmtList = arr => arr.length <= 1 ? (arr[0] || "") : arr.slice(0, -1).join(", ") + " and " + arr[arr.length - 1];
+
+function resolvePath(fromPart, target) {
+  if (target.startsWith("/")) return target.slice(1);
+  const parts = fromPart.split("/").slice(0, -1);
+  for (const seg of target.split("/")) {
+    if (seg === "..") parts.pop(); else if (seg !== ".") parts.push(seg);
+  }
+  return parts.join("/");
+}
+
+/* ============================================================================
+   2. PPTX reader — slides, positions, text, tables, charts, pictures, connectors
+   ========================================================================== */
+async function readPptx(file) {
+  const zip = await JSZip.loadAsync(file);
+  const cache = {};
+  const text = async p => { const f = zip.file(p); return f ? f.async("string") : null; };
+  const doc = async p => { if (!(p in cache)) { const t = await text(p); cache[p] = t ? xml(t) : null; } return cache[p]; };
+  async function rels(part) {
+    const i = part.lastIndexOf("/");
+    const d = await doc(part.slice(0, i) + "/_rels/" + part.slice(i + 1) + ".rels");
+    const map = {};
+    for (const r of q(d, "Relationship")) map[r.getAttribute("Id")] = { target: resolvePath(part, r.getAttribute("Target")), type: r.getAttribute("Type") || "", external: r.getAttribute("TargetMode") === "External" };
+    return map;
+  }
+
+  const pres = await doc("ppt/presentation.xml");
+  const sz = q1(pres, "sldSz");
+  const W = +sz.getAttribute("cx"), H = +sz.getAttribute("cy");
+  const presRels = await rels("ppt/presentation.xml");
+  const slidePaths = q(pres, "sldId").map(s => presRels[s.getAttribute("r:id")]?.target).filter(Boolean);
+
+  // Theme colours
+  const themePath = Object.keys(zip.files).find(p => /^ppt\/theme\/theme\d+\.xml$/.test(p));
+  const theme = {};
+  const tdoc = themePath ? await doc(themePath) : null;
+  const scheme = q1(tdoc, "clrScheme");
+  if (scheme) for (const c of scheme.children) { const v = q1(c, "srgbClr")?.getAttribute("val") || q1(c, "sysClr")?.getAttribute("lastClr"); if (v) theme[c.localName] = "#" + v; }
+  let clrMap = { bg1: "lt1", tx1: "dk1", bg2: "lt2", tx2: "dk2" }; // replaced by each slide master's <p:clrMap>
+  const lum = (hex, el) => {
+    const mod = +(kid(el, "lumMod")?.getAttribute("val") || 100000) / 100000, off = +(kid(el, "lumOff")?.getAttribute("val") || 0) / 100000;
+    if (mod === 1 && !off) return hex;
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let l = (mx + mn) / 2, h = 0, s = 0;
+    if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+    l = Math.min(1, Math.max(0, l * mod + off));
+    const f = n => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, "0"); };
+    return "#" + f(0) + f(8) + f(4);
+  };
+  const color = el => {
+    if (!el) return null;
+    const s = kid(el, "srgbClr"); if (s) return lum("#" + s.getAttribute("val"), s);
+    const c = kid(el, "schemeClr");
+    if (c) { const v = c.getAttribute("val"); const hex = theme[clrMap[v] || v]; return hex ? lum(hex, c) : null; }
+    return null;
+  };
+
+  const media = {};
+  async function mediaUrl(path) {
+    if (path in media) return media[path];
+    const ext = path.split(".").pop().toLowerCase();
+    const mime = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml" }[ext];
+    const f = zip.file(path);
+    media[path] = mime && f ? `data:${mime};base64,${await f.async("base64")}` : null;
+    return media[path];
+  }
+
+  // Placeholder positions inherited from layout / master
+  async function phMap(part) {
+    const d = await doc(part); const map = { idx: {}, type: {} };
+    if (!d) return map;
+    for (const sp of q(d, "sp")) {
+      const ph = q1(kid(sp, "nvSpPr"), "ph"); const x = q1(kid(sp, "spPr"), "xfrm");
+      if (!ph || !x) continue;
+      const box = xfrmBox(x);
+      if (ph.getAttribute("idx")) map.idx[ph.getAttribute("idx")] = box;
+      map.type[ph.getAttribute("type") || "body"] ??= box;
+    }
+    return map;
+  }
+  function xfrmBox(x) {
+    const off = kid(x, "off"), ext = kid(x, "ext");
+    if (!off || !ext) return null;
+    return { x: +off.getAttribute("x"), y: +off.getAttribute("y"), w: +ext.getAttribute("cx"), h: +ext.getAttribute("cy"),
+             flipH: x.getAttribute("flipH") === "1", flipV: x.getAttribute("flipV") === "1" };
+  }
+
+  function paragraphs(txBody) {
+    return kids(txBody, "p").map(p => {
+      let t = "";
+      for (const n of p.children) {
+        if (n.localName === "r" || n.localName === "fld") t += q1(n, "t")?.textContent || "";
+        else if (n.localName === "br") t += "\n";
+      }
+      const pPr = kid(p, "pPr");
+      const lvl = +(pPr?.getAttribute("lvl") || 0);
+      const bullet = !!(pPr && (kid(pPr, "buChar") || kid(pPr, "buAutoNum")));
+      const rPr = q1(p, "rPr");
+      return { text: t.replace(/\u000b/g, "\n").trim(), lvl, bullet, sz: rPr?.getAttribute("sz") ? +rPr.getAttribute("sz") / 100 : null,
+               color: color(kid(rPr, "solidFill")) };
+    }).filter(p => p.text);
+  }
+
+  async function readChart(path) {
+    const d = await doc(path);
+    if (!d) return null;
+    const plot = q1(d, "plotArea");
+    const series = [];
+    let type = "chart";
+    for (const c of plot ? Array.from(plot.children) : []) {
+      if (!c.localName.endsWith("Chart")) continue;
+      type = c.localName.replace("Chart", "");
+      for (const ser of kids(c, "ser")) {
+        const pts = el => q(el, "pt").map(p => [+p.getAttribute("idx"), q1(p, "v")?.textContent ?? ""]).sort((a, b) => a[0] - b[0]).map(p => p[1]);
+        series.push({ name: q(kid(ser, "tx"), "v")[0]?.textContent || q(kid(ser, "tx"), "t")[0]?.textContent || "Series " + (series.length + 1),
+                      cats: pts(kid(ser, "cat")), vals: pts(kid(ser, "val")) });
+      }
+    }
+    const labels = q(d, "dLbls").some(l => kid(l, "showVal")?.getAttribute("val") === "1" || (kid(l, "showVal") && kid(l, "showVal").getAttribute("val") !== "0"));
+    const title = q(q1(d, "title"), "t").map(t => t.textContent).join("").trim();
+    return { type, series, labels, title };
+  }
+
+  const slides = [];
+  for (const [si, path] of slidePaths.entries()) {
+    const d = await doc(path);
+    const r = await rels(path);
+    const layoutPath = Object.values(r).find(x => x.type.endsWith("/slideLayout"))?.target;
+    const lr = layoutPath ? await rels(layoutPath) : {};
+    const masterPath = Object.values(lr).find(x => x.type.endsWith("/slideMaster"))?.target;
+    const lmap = layoutPath ? await phMap(layoutPath) : { idx: {}, type: {} };
+    const mmap = masterPath ? await phMap(masterPath) : { idx: {}, type: {} };
+    const cm0 = masterPath ? q1(await doc(masterPath), "clrMap") : null;
+    if (cm0) clrMap = Object.fromEntries(Array.from(cm0.attributes).map(a => [a.name, a.value]));
+    const items = [];
+    let order = 0;
+
+    // Slide background picture
+    let bg = null;
+    const bgBlip = q1(q1(d, "bg"), "blip");
+    if (bgBlip && r[bgBlip.getAttribute("r:embed")]) bg = await mediaUrl(r[bgBlip.getAttribute("r:embed")].target);
+
+    async function walk(tree, tf) {
+      for (const el of Array.from(tree.children)) {
+        const ln = el.localName;
+        if (ln === "AlternateContent") { const c = kid(el, "Choice") || kid(el, "Fallback"); if (c) await walk(c, tf); continue; }
+        if (!["sp", "pic", "cxnSp", "graphicFrame", "grpSp"].includes(ln)) continue;
+        const nv = Array.from(el.children).find(c => c.localName.startsWith("nv"));
+        const cNvPr = q1(nv, "cNvPr");
+        if (cNvPr?.getAttribute("hidden") === "1") continue;
+        if (ln === "grpSp") {
+          const x = q1(kid(el, "grpSpPr"), "xfrm");
+          const b = x && xfrmBox(x);
+          const chOff = kid(x, "chOff"), chExt = kid(x, "chExt");
+          if (!b || !chOff || !chExt) { await walk(el, tf); continue; }
+          const cx = +chOff.getAttribute("x"), cy = +chOff.getAttribute("y");
+          const sx = b.w / Math.max(1, +chExt.getAttribute("cx")), sy = b.h / Math.max(1, +chExt.getAttribute("cy"));
+          await walk(el, (x2, y2, w2, h2) => tf(b.x + (x2 - cx) * sx, b.y + (y2 - cy) * sy, w2 * sx, h2 * sy));
+          continue;
+        }
+        const ph = q1(nv, "ph");
+        const phType = ph ? (ph.getAttribute("type") || "body") : null;
+        let box = null;
+        const x = ln === "graphicFrame" ? kid(el, "xfrm") : q1(kid(el, "spPr"), "xfrm");
+        if (x) box = xfrmBox(x);
+        if (!box && ph) box = lmap.idx[ph.getAttribute("idx")] || lmap.type[phType] || mmap.type[phType] || null;
+        if (!box) continue;
+        if (["sldNum", "ftr", "dt"].includes(phType)) continue;
+        const [bx, by, bw, bh] = tf(box.x, box.y, box.w, box.h);
+        if (bx + bw <= 0 || by + bh <= 0 || bx >= W || by >= H) continue;
+        const it = { order: order++, id: cNvPr?.getAttribute("id"), name: cNvPr?.getAttribute("name") || "", descr: norm(cNvPr?.getAttribute("descr") || cNvPr?.getAttribute("title")),
+                     x: bx, y: by, w: bw, h: bh, flipH: box.flipH, flipV: box.flipV, ph: phType, paras: [], text: "" };
+        const spPr = kid(el, "spPr");
+        it.prst = q1(spPr, "prstGeom")?.getAttribute("prst") || null;
+        const noFill = spPr && kid(spPr, "noFill");
+        it.fill = color(kid(spPr, "solidFill")) || (!noFill && !ph && ln === "sp" ? color(q1(q1(kid(el, "style"), "fillRef"), "schemeClr")?.parentNode) : null);
+        if (ln === "sp") {
+          it.kind = "text";
+          it.paras = paragraphs(kid(el, "txBody"));
+          it.text = it.paras.map(p => p.text).join("\n");
+          if (!it.text) it.kind = "shape";
+        } else if (ln === "cxnSp") {
+          it.kind = "line";
+          it.st = q1(nv, "stCxn")?.getAttribute("id"); it.end = q1(nv, "endCxn")?.getAttribute("id");
+        } else if (ln === "pic") {
+          it.kind = "pic";
+          const blip = q1(el, "blip"); const rel = blip && r[blip.getAttribute("r:embed")];
+          it.src = rel ? await mediaUrl(rel.target) : null;
+          it.format = rel ? rel.target.split(".").pop().toLowerCase() : "";
+        } else {
+          const gd = q1(el, "graphicData"); const uri = gd?.getAttribute("uri") || "";
+          const tbl = q1(gd, "tbl");
+          if (tbl) {
+            it.kind = "table";
+            const grid = q(q1(tbl, "tblGrid"), "gridCol").map(g => +g.getAttribute("w"));
+            const scale = bw / Math.max(1, grid.reduce((a, b) => a + b, 0));
+            it.colX = []; let acc = bx; for (const g of grid) { it.colX.push([acc, acc + g * scale]); acc += g * scale; }
+            const trs = kids(tbl, "tr");
+            const rowH = trs.map(t => +t.getAttribute("h") || 1); const rscale = bh / Math.max(1, rowH.reduce((a, b) => a + b, 0));
+            it.rowY = []; acc = by; for (const h of rowH) { it.rowY.push([acc, acc + h * rscale]); acc += h * rscale; }
+            it.rows = []; it.fills = []; it.spans = []; it.merged = false;
+            for (const tr of trs) {
+              const row = [], fr = [], sr = [];
+              for (const tc of kids(tr, "tc")) {
+                row.push(norm(q(tc, "t").map(t => t.textContent).join(" ")));
+                fr.push(color(kid(kid(tc, "tcPr"), "solidFill")));
+                const spanned = tc.getAttribute("hMerge") === "1" || tc.getAttribute("vMerge") === "1";
+                if (spanned || +tc.getAttribute("gridSpan") > 1 || +tc.getAttribute("rowSpan") > 1) it.merged = true;
+                sr.push({ spanned, gridSpan: +tc.getAttribute("gridSpan") || 1 });
+              }
+              it.rows.push(row); it.fills.push(fr); it.spans.push(sr);
+            }
+            it.text = it.rows.map(r2 => r2.filter(Boolean).join(" ")).filter(Boolean).join(" ");
+          } else if (uri.includes("chart")) {
+            it.kind = "chart";
+            const cref = q1(gd, "chart"); const rel = cref && r[cref.getAttribute("r:id")];
+            it.chart = rel ? await readChart(rel.target) : null;
+          } else {
+            it.kind = uri.includes("ole") ? "ole" : "object";
+          }
+        }
+        items.push(it);
+      }
+    }
+    await walk(q1(d, "spTree"), (a, b, c, e) => [a, b, c, e]);
+    const notes = "";
+    slides.push({ n: si + 1, items, bg, notes });
+  }
+
+  markChrome(slides);
+  for (const s of slides) {
+    s.raw = s.items.map(rawOf).filter(Boolean).join("\n").trim();
+    s.title = slideTitle(s, W, H);
+    s.thumb = svgThumb(s, W, H);
+  }
+  return { kind: "pptx", W, H, slides };
+}
+
+function rawOf(it) {
+  if (it.kind === "text") return it.text;
+  if (it.kind === "table") return it.text;
+  if (it.kind === "pic") return it.w / EMU_CM > 1.5 ? "[image]" : "";
+  if (it.kind === "chart") return it.chart?.labels ? it.chart.series.flatMap(s => s.vals).join(" ") : "[chart]";
+  return "";
+}
+
+// Elements repeated on most slides (footers, navigation sidebars, page numbers) are not content.
+function markChrome(slides) {
+  const sig = it => (it.kind === "text" || it.kind === "table") && it.text ? it.kind + ":" + norm(it.text) : null;
+  const counts = {};
+  for (const s of slides) for (const k of new Set(s.items.map(sig).filter(Boolean))) counts[k] = (counts[k] || 0) + 1;
+  const n = slides.length;
+  for (const s of slides) for (const it of s.items) {
+    const k = sig(it);
+    it.chrome = !!(k && n >= 4 && counts[k] >= Math.max(3, n * 0.5)) || /^\d{1,3}$/.test(norm(it.text));
+  }
+}
+
+function slideTitle(s, W, H) {
+  const t = s.items.find(i => (i.ph === "title" || i.ph === "ctrTitle") && i.text);
+  if (t) return norm(t.text);
+  const first = i => norm(i.paras[0]?.text);
+  const cands = s.items.filter(i => i.kind === "text" && !i.chrome && i.y < H * 0.45 && words(first(i)) >= 2 && words(first(i)) <= 14);
+  cands.sort((a, b) => (b.paras[0]?.sz || 0) - (a.paras[0]?.sz || 0) || words(first(b)) - words(first(a)));
+  return cands[0] ? first(cands[0]).slice(0, 100) : `Slide ${s.n}`;
+}
+
+/* Structural preview of a PPTX slide (no PowerPoint renderer in a browser). */
+function svgThumb(s, W, H) {
+  const VW = 1600, VH = Math.round(VW * H / W), sx = VW / W, sy = VH / H;
+  const dark = c => { if (!c || c.length < 7) return false; const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)); return 0.299 * r + 0.587 * g + 0.114 * b < 140; };
+  const fo = (x, y, w, h, html, size, col, op) => `<foreignObject x="${x|0}" y="${y|0}" width="${Math.max(1, w)|0}" height="${Math.max(1, h)|0}"${op}><div xmlns="http://www.w3.org/1999/xhtml" style="font:${size|0}px Arial,sans-serif;color:${col};padding:4px 6px;overflow:hidden;height:100%;box-sizing:border-box;line-height:1.2">${html}</div></foreignObject>`;
+  const out = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VW} ${VH}" width="${VW}" height="${VH}"><rect width="${VW}" height="${VH}" fill="#fff"/>`];
+  if (s.bg) out.push(`<image href="${s.bg}" x="0" y="0" width="${VW}" height="${VH}" preserveAspectRatio="xMidYMid slice"/>`);
+  for (const it of s.items) {
+    const x = it.x * sx, y = it.y * sy, w = it.w * sx, h = it.h * sy;
+    const op = it.chrome ? ' opacity="0.45"' : "";
+    if (it.kind === "line") {
+      const [x1, x2] = it.flipH ? [x + w, x] : [x, x + w], [y1, y2] = it.flipV ? [y + h, y] : [y, y + h];
+      out.push(`<line x1="${x1|0}" y1="${y1|0}" x2="${x2|0}" y2="${y2|0}" stroke="#56606b" stroke-width="3"${op}/>`);
+    } else if (it.kind === "pic") {
+      if (it.src) out.push(`<image href="${it.src}" x="${x|0}" y="${y|0}" width="${w|0}" height="${h|0}" preserveAspectRatio="xMidYMid meet"${op}/>`);
+      else out.push(`<rect x="${x|0}" y="${y|0}" width="${w|0}" height="${h|0}" fill="#eceae4" stroke="#c8c3b8"${op}/>`);
+    } else if (it.kind === "table") {
+      it.rows.forEach((row, ri) => row.forEach((cell, ci) => {
+        const [cx0, cx1] = it.colX[ci] || [it.x, it.x], [ry0, ry1] = it.rowY[ri] || [it.y, it.y];
+        const f = it.fills[ri]?.[ci] || "#f3f1ec";
+        out.push(`<rect x="${cx0 * sx|0}" y="${ry0 * sy|0}" width="${(cx1 - cx0) * sx|0}" height="${(ry1 - ry0) * sy|0}" fill="${f}" stroke="#fff" stroke-width="2"${op}/>`);
+        if (cell) out.push(fo(cx0 * sx, ry0 * sy, (cx1 - cx0) * sx * (it.spans[ri]?.[ci]?.gridSpan || 1), (ry1 - ry0) * sy, esc(cell), 13, dark(f) ? "#fff" : "#1c2530", op));
+      }));
+    } else if (it.kind === "chart" || it.kind === "ole" || it.kind === "object") {
+      out.push(`<rect x="${x|0}" y="${y|0}" width="${w|0}" height="${h|0}" fill="#eceae4" stroke="#c8c3b8"${op}/>`);
+    } else {
+      const shape = it.prst === "ellipse" ? `<ellipse cx="${x + w / 2|0}" cy="${y + h / 2|0}" rx="${w / 2|0}" ry="${h / 2|0}" fill="${it.fill}"${op}/>`
+        : it.prst === "diamond" ? `<polygon points="${x + w / 2|0},${y|0} ${x + w|0},${y + h / 2|0} ${x + w / 2|0},${y + h|0} ${x|0},${y + h / 2|0}" fill="${it.fill}"${op}/>`
+        : (it.prst === "chevron" || it.prst === "homePlate") ? `<polygon points="${x|0},${y|0} ${x + w - h / 2|0},${y|0} ${x + w|0},${y + h / 2|0} ${x + w - h / 2|0},${y + h|0} ${x|0},${y + h|0}${it.prst === "chevron" ? ` ${x + h / 2|0},${y + h / 2|0}` : ""}" fill="${it.fill}"${op}/>`
+        : `<rect x="${x|0}" y="${y|0}" width="${w|0}" height="${h|0}" fill="${it.fill}"${op}/>`;
+      if (it.fill) out.push(shape);
+      if (it.text) {
+        const pt = it.paras[0]?.sz || (it.ph === "title" ? 24 : 12);
+        const col = it.paras[0]?.color || (dark(it.fill) ? "#fff" : "#1c2530");
+        out.push(fo(x, y, w, h, it.paras.map(p => esc(p.text).replace(/\n/g, "<br/>")).join("<br/>"), Math.max(10, Math.min(44, pt * VW / 960)), col, op));
+      }
+    }
+  }
+  out.push("</svg>");
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(out.join(""));
+}
+
+/* ============================================================================
+   3. PDF reader — text with positions, image coverage, vector density, render
+   ========================================================================== */
+async function readPdf(file) {
+  await ensurePdfJs();
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const slides = [];
+  const O = pdfjsLib.OPS;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 1 });
+    const tc = await page.getTextContent();
+    // One item per text run, in stream order (what an extractor returns)
+    const runs = tc.items.filter(t => norm(t.str)).map((t, k) => {
+      const size = Math.hypot(t.transform[2], t.transform[3]) || 10;
+      return { order: k, text: t.str, x: t.transform[4], y: vp.height - t.transform[5] - size, w: t.width, h: size, size };
+    });
+    // Merge runs into lines, lines into blocks
+    const lines = [];
+    for (const r of runs) {
+      const l = lines.find(l => Math.abs(l.y - r.y) < r.size * 0.5 && r.x >= l.x + l.w - r.size && r.x - (l.x + l.w) < r.size * 1.5);
+      if (l) { l.text += (r.x - (l.x + l.w) > r.size * 0.15 ? " " : "") + r.text; l.w = r.x + r.w - l.x; l.h = Math.max(l.h, r.h); }
+      else lines.push({ ...r });
+    }
+    const blocks = [];
+    for (const l of lines) {
+      const b = blocks.find(b => Math.abs(b.x - l.x) < l.size * 2 && l.y - (b.y + b.h) < l.size * 1.1 && l.y >= b.y && Math.abs(b.size - l.size) < 2);
+      if (b) { b.text += "\n" + l.text; b.w = Math.max(b.x + b.w, l.x + l.w) - Math.min(b.x, l.x); b.x = Math.min(b.x, l.x); b.h = l.y + l.h - b.y; }
+      else blocks.push({ ...l, kind: "text" });
+    }
+    blocks.forEach(b => { b.paras = b.text.split("\n").map(t => ({ text: t, lvl: 0, bullet: /^[•\-–▪■●]/.test(t) })); });
+
+    // Images and vector paths from the operator list (tracking the transform matrix)
+    const ops = await page.getOperatorList();
+    let ctm = [1, 0, 0, 1, 0, 0]; const stack = []; let imgArea = 0, imgs = 0, paths = 0;
+    const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+    for (let k = 0; k < ops.fnArray.length; k++) {
+      const fn = ops.fnArray[k];
+      if (fn === O.save) stack.push(ctm);
+      else if (fn === O.restore) ctm = stack.pop() || ctm;
+      else if (fn === O.transform) ctm = mul(ctm, ops.argsArray[k]);
+      else if (fn === O.paintImageXObject || fn === O.paintJpegXObject || fn === O.paintInlineImageXObject) {
+        const a = Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2]);
+        if (a > vp.width * vp.height * 0.01) { imgs++; imgArea += a; }
+      } else if (fn === O.constructPath) paths++;
+    }
+    const canvas = document.createElement("canvas");
+    const scale = 900 / vp.width;
+    const v2 = page.getViewport({ scale });
+    canvas.width = v2.width; canvas.height = v2.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport: v2 }).promise;
+    const raw = runs.map(r => r.text).join(" ").replace(/\s+\n/g, "\n");
+    slides.push({ n: i, items: blocks, raw: tc.items.map(t => t.str + (t.hasEOL ? "\n" : "")).join("").trim() || raw,
+                  thumb: canvas.toDataURL("image/jpeg", 0.85), imgCoverage: Math.min(1, imgArea / (vp.width * vp.height)), imgs, paths,
+                  W: vp.width, H: vp.height });
+  }
+  markChrome(slides);
+  for (const s of slides) {
+    const cands = s.items.filter(b => !b.chrome && b.y < s.H * 0.3 && words(b.text) <= 14).sort((a, b) => b.size - a.size);
+    s.title = cands[0] ? norm(cands[0].text) : `Page ${s.n}`;
+  }
+  return { kind: "pdf", slides, W: slides[0]?.W, H: slides[0]?.H };
+}
+
+/* ============================================================================
+   4. Deterministic rules — where a model will misread, and the explicit fix
+   ========================================================================== */
+const WEIGHT = { low: 3, medium: 5, high: 8 };
+const CM = { pptx: EMU_CM, pdf: 28.35 }; // units per cm
+const MONTHS = /^(jan|feb|m[aä]r|apr|ma[iy]|jun|jul|aug|sep|o[ck]t|nov|d[eé]c|janv|f[eé]v|avr|juin|juil|ao[uû]t|sept|d[eé]z)/i;
+
+// Reading order a human uses: recursive XY-cut (rows first, then columns).
+function xyCut(boxes, tol) {
+  if (boxes.length <= 1) return boxes;
+  for (const [pos, size] of [["y", "h"], ["x", "w"]]) {
+    const s = [...boxes].sort((a, b) => a[pos] - b[pos]);
+    let end = s[0][pos] + s[0][size];
+    for (let i = 1; i < s.length; i++) {
+      if (s[i][pos] >= end - tol) return [...xyCut(s.slice(0, i), tol), ...xyCut(s.slice(i), tol)];
+      end = Math.max(end, s[i][pos] + s[i][size]);
+    }
+  }
+  return [...boxes].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+function contentItems(s) { return s.items.filter(i => !i.chrome && (i.kind === "text" || i.kind === "table" || i.kind === "chart" || (i.kind === "pic" && i.w > 0))); }
+
+function tableMd(rows) {
+  const w = Math.max(...rows.map(r => r.length));
+  const pad = r => [...r, ...Array(w - r.length).fill("")].map(c => c.replace(/\|/g, "/"));
+  return ["| " + pad(rows[0]).join(" | ") + " |", "|" + " --- |".repeat(w), ...rows.slice(1).map(r => "| " + pad(r).join(" | ") + " |")].join("\n");
+}
+
+function contentMd(s, unit) {
+  const items = xyCut(contentItems(s), unit * 0.1);
+  const out = [];
+  for (const it of items) {
+    if (it.kind === "text") {
+      if (norm(it.text) === norm(s.title)) continue;
+      out.push(parasMd(it.paras));
+    } else if (it.kind === "table" && it.rows.length) out.push(tableMd(it.rows));
+    else if (it.kind === "chart" && it.chart) out.push(`Chart${it.chart.title ? " “" + it.chart.title + "”" : ""}:\n` + chartLines(it.chart).map(l => "- " + l).join("\n"));
+    else if (it.kind === "pic" && it.descr) out.push(`[Image: ${it.descr}]`);
+  }
+  return out.join("\n\n");
+}
+
+// Paragraphs → Markdown: indentation relative to the box's shallowest level, short unpunctuated lines as sub-headings
+function parasMd(paras) {
+  const min = Math.min(...paras.map(p => p.lvl));
+  const multi = paras.length >= 3;
+  return paras.map(p => {
+    const t = p.text.replace(/\n/g, " ").trim();
+    const d = p.lvl - min;
+    if (multi && !p.bullet && d === 0 && words(t) <= 6 && !/[.:;,!?]$/.test(t)) return `**${t}**`;
+    if (p.bullet || d > 0) return "  ".repeat(Math.max(0, d - (p.bullet ? 0 : 1))) + "- " + t;
+    return t;
+  }).join("\n");
+}
+
+function chartLines(ch) {
+  return ch.series.map(se => `${se.name}: ` + se.vals.map((v, i) => `${se.cats[i] ?? "#" + (i + 1)} = ${v}`).join("; "));
+}
+
+const ACRONYMS = {
+  AI:"artificial intelligence", AML:"anti-money laundering", API:"application programming interface", AWS:"Amazon Web Services", BAU:"business as usual", BCBS:"Basel Committee on Banking Supervision", BCM:"business continuity management", BCP:"business continuity plan", BIA:"business impact analysis", CEO:"chief executive officer", CFO:"chief financial officer", CIO:"chief information officer", CISO:"chief information security officer", CDO:"chief data officer", CRO:"chief risk officer", COO:"chief operating officer", CPA:"Cyber Program Assessment", CSP:"cloud service provider", CSPs:"cloud service providers", CV:"curriculum vitae", DLP:"data leakage prevention", DORA:"Digital Operational Resilience Act (EU)", DPA:"Data Protection Act", DPO:"Data Protection Ordinance", DQ:"data quality", DR:"disaster recovery", DRP:"disaster recovery plan", EBA:"European Banking Authority", ERP:"enterprise resource planning", ESG:"environmental, social and governance", EU:"European Union", FINMA:"Swiss Financial Market Supervisory Authority", FTE:"full-time equivalent", GCP:"Google Cloud Platform", GDPR:"General Data Protection Regulation", GRC:"governance, risk and compliance", IAM:"identity and access management", ICT:"information and communication technology", ISMS:"information security management system", ISO:"International Organization for Standardization", IT:"information technology", KPI:"key performance indicator", KPIs:"key performance indicators", KRI:"key risk indicator", KYC:"know your customer", LoD:"line of defence", MDM:"master data management", MFA:"multi-factor authentication", MVP:"minimum viable product", NIST:"US National Institute of Standards and Technology", PAM:"privileged access management", PMO:"project management office", POC:"proof of concept", QA:"quality assurance", RACI:"responsible, accountable, consulted, informed", RfP:"request for proposal", RFP:"request for proposal", RPO:"recovery point objective", RTO:"recovery time objective", SaaS:"software as a service", SIEM:"security information and event management", SLA:"service level agreement", SME:"subject matter expert", SMEs:"subject matter experts", SOC:"security operations centre (or System and Organization Controls report, depending on context)", SOX:"Sarbanes-Oxley Act", TOM:"target operating model", UAT:"user acceptance testing", VAT:"value added tax", VPN:"virtual private network"
+};
+const NOT_ACRONYMS = new Set(["EY", "CH", "AG", "UK", "US", "OK", "CHF", "EUR", "USD", "GBP", "II", "III", "IV", "VI", "PDF", "PPT", "TBD", "TBC", "NB", "AM", "PM", "FY", "Q1", "Q2", "Q3", "Q4", "H1", "H2", "SA", "SE", "LTD", "LLC", "GMBH", "XXX", "XXXX"]);
+
+const OBVIOUS = new Set(["AI", "IT", "VAT", "CEO", "CFO", "EU", "CV", "CVs"]);
+function findAcronyms(slides) {
+  const all = slides.map(s => s.items.filter(i => !i.chrome).map(i => i.text || "").join("\n")).join("\n");
+  const found = new Map();
+  for (const s of slides) {
+    const txt = s.items.filter(i => !i.chrome).map(i => i.text || "").join("\n");
+    for (const m of txt.matchAll(/\b([A-Z][a-z]?[A-Z]{1,5}s?)\b/g)) {
+      const a = m[1];
+      if (NOT_ACRONYMS.has(a.toUpperCase()) || /^X+$/i.test(a)) continue;
+      if (!found.has(a)) found.set(a, { term: a, slides: new Set(), count: 0 });
+      found.get(a).slides.add(s.n); found.get(a).count++;
+    }
+  }
+  // Defined = "Full Name (ABC)" or "ABC (Full Name)" where the words' initials spell the acronym
+  const initials = s => s.split(/[\s\-/]+/).filter(w => w && !/^(and|of|for|the|&|de|du|des|la|le|et|und|für)$/i.test(w)).map(w => w[0].toUpperCase()).join("");
+  const defined = a => {
+    const core = a.replace(/s$/, "").toUpperCase();
+    if (new RegExp(`\\(\\s*${a}\\s*\\)`).test(all)) return true;
+    for (const m of all.matchAll(new RegExp(`\\b${a}\\s*\\(([^)]{3,80})\\)`, "g"))) if (initials(m[1]).startsWith(core)) return true;
+    return false;
+  };
+  return [...found.values()].filter(x => !defined(x.term) && !OBVIOUS.has(x.term));
+}
+
+function detectTimeline(s, u) {
+  const out = [];
+  for (const t of s.items.filter(i => i.kind === "table" && !i.chrome)) {
+    // Header row: ≥ 6 increasing integers (weeks, days, sprints) or ≥ 3 month names
+    let unitRow = -1, labels = null;
+    t.rows.forEach((row, ri) => {
+      const nums = row.map(c => /^\d{1,3}$/.test(c) ? +c : null);
+      const seq = nums.filter(v => v !== null);
+      if (unitRow < 0 && seq.length >= 6 && seq.every((v, k) => k === 0 || v > seq[k - 1])) {
+        unitRow = ri; const unitName = row.find(c => c && !/^\d+$/.test(c)) || "";
+        labels = row.map(c => /^\d{1,3}$/.test(c) ? (unitName ? unitName + " " + c : c) : null);
+      }
+    });
+    const monthRow = t.rows.findIndex(r => r.filter(c => MONTHS.test(c)).length >= 3);
+    if (unitRow < 0 && monthRow < 0) continue;
+    const monthOf = []; // propagate month names over spanned columns
+    if (monthRow >= 0) { let cur = null; t.rows[monthRow].forEach((c, ci) => { if (c) cur = c; monthOf[ci] = MONTHS.test(cur || "") ? cur : null; }); }
+    const yearRow = t.rows.findIndex(r => r.some(c => /^(19|20)\d{2}$/.test(c)));
+    const year = yearRow >= 0 ? t.rows[yearRow].find(c => /^(19|20)\d{2}$/.test(c)) : "";
+    if (!labels) labels = monthOf.map(m => m);
+    const firstData = labels.findIndex(Boolean);
+    const colAt = x => { let best = -1; t.colX.forEach(([a, b], ci) => { if (ci >= firstData && x >= a - u * 0.05 && x < b) best = ci; }); return best; };
+    const when = (c0, c1) => {
+      if (c0 < 0) return null;
+      const lab = c1 > c0 ? `${labels[c0]}–${(labels[c1] || "").replace(/^\D+/, "")}` : labels[c0];
+      const months = [...new Set([monthOf[c0], monthOf[c1]].filter(Boolean))];
+      return lab + (months.length ? ` (${months.join("–")}${year ? " " + year : ""})` : "");
+    };
+    const rowAt = y => { const k = t.rowY.findIndex(([a, b]) => y >= a - u * 0.1 && y < b); return k > Math.max(unitRow, monthRow, yearRow) ? t.rows[k][0] : ""; };
+    const inX = it => it.x + it.w > t.colX[firstData][0] && it.x < t.x + t.w;
+    const markers = [];
+    for (const it of s.items) {
+      if (it.chrome || !inX(it)) continue;
+      const inY = it.y >= t.y - u * 0.3 && it.y <= t.y + t.h + u * 0.3;
+      if (it.kind === "line" && it.h < u * 0.1 && it.w > u * 0.3 && inY) markers.push({ kind: "bar", it, x0: it.x, x1: it.x + it.w - u * 0.05, y: it.y });
+      else if (it.kind === "shape" && it.w < u * 0.8 && it.h < u * 0.8 && inY) markers.push({ kind: "milestone", it, x0: it.x + it.w / 2, x1: it.x + it.w / 2, y: it.y + it.h / 2 });
+    }
+    // Filled cells without text in data rows are Gantt bars too
+    t.rows.forEach((row, ri) => {
+      if (ri <= Math.max(unitRow, monthRow, yearRow)) return;
+      let start = -1;
+      for (let ci = firstData; ci <= row.length; ci++) {
+        const on = ci < row.length && !row[ci] && t.fills[ri][ci] && t.fills[ri][ci] !== t.fills[ri][0];
+        if (on && start < 0) start = ci;
+        if (!on && start >= 0) { markers.push({ kind: "cells", label: row[0], c0: start, c1: ci - 1 }); start = -1; }
+      }
+    });
+    if (!markers.length) continue;
+    // Labels: short free text near each marker, assigned greedily by distance
+    const labelsTxt = s.items.filter(i => i.kind === "text" && !i.chrome && words(i.text) <= 8 && i !== t);
+    const pairs = [];
+    markers.forEach((m, mi) => {
+      if (m.kind === "cells") return;
+      labelsTxt.forEach((l, li) => {
+        const d = m.kind === "bar" ? Math.hypot(l.x - m.x0, l.y - m.y) : Math.hypot(l.x + l.w / 2 - m.x0, l.y + l.h / 2 - m.y);
+        if (d < u * (m.kind === "bar" ? 1.2 : 2)) pairs.push([d, mi, li]);
+      });
+    });
+    pairs.sort((a, b) => a[0] - b[0]);
+    const usedM = new Set(), usedL = new Set();
+    for (const [, mi, li] of pairs) if (!usedM.has(mi) && !usedL.has(li)) { usedM.add(mi); usedL.add(li); markers[mi].label = norm(labelsTxt[li].text); }
+    const lines = [];
+    const miles = markers.filter(m => m.kind === "milestone" && m.label);
+    for (const m of markers) {
+      const c0 = m.kind === "cells" ? m.c0 : colAt(m.x0), c1 = m.kind === "cells" ? m.c1 : colAt(m.x1);
+      const w = when(c0, Math.max(c0, c1));
+      if (!w) continue;
+      const row = m.kind === "cells" ? "" : rowAt(m.y);
+      let label = m.label;
+      if (!label) {
+        // An unlabelled bar joining two milestones spans the period between them
+        const a = miles.find(x => Math.abs(x.x0 - m.x0) < u * 0.4), b = miles.find(x => Math.abs(x.x0 - m.x1) < u * 0.4);
+        label = (row || "Activity") + (a && b ? ` (from ${a.label} to ${b.label})` : "");
+      }
+      const tag = row && m.label && row.toLowerCase() !== m.label.toLowerCase() ? ` [${row}]` : "";
+      lines.push({ c0, text: `${label}${tag}: ${m.kind === "milestone" ? "milestone in " : ""}${w}` });
+    }
+    if (!lines.length) continue;
+    lines.sort((a, b) => a.c0 - b.c0);
+    out.push({ table: t, lines: [...new Set(lines.map(l => l.text))] });
+  }
+  return out;
+}
+
+function detectDiagram(s, u) {
+  const txt = s.items.filter(i => i.kind === "text" && !i.chrome);
+  const byId = Object.fromEntries(s.items.filter(i => i.id).map(i => [i.id, i]));
+  const center = i => [i.x + i.w / 2, i.y + i.h / 2];
+  const inside = (a, b) => { const [cx, cy] = center(a); return cx > b.x && cx < b.x + b.w && cy > b.y && cy < b.y + b.h; };
+  // Containers: shapes that hold ≥ 2 short labels; their title is the label sitting on their top edge
+  const groups = [];
+  for (const c of s.items.filter(i => (i.kind === "shape" || i.kind === "text") && !i.chrome && i.w * i.h > u * u * 8)) {
+    const members = txt.filter(t => t !== c && inside(t, c) && words(t.text) <= 10 && t.w * t.h < c.w * c.h * 0.6 && !groups.some(g => g.c === t));
+    if (members.length < 2) continue;
+    const title = members.find(m => Math.abs(m.y - c.y) < u * 0.6 && m.h < u * 1);
+    const rest = members.filter(m => m !== title);
+    if (rest.length >= 2) groups.push({ c, title: title ? norm(title.text) : norm(c.text) || "Group", members: rest.sort((a, b) => a.y - b.y || a.x - b.x).map(m => norm(m.text)) });
+  }
+  const nameOf = it => {
+    if (!it) return null;
+    // A connector that ends on a box inside a group points at the group (designers often run lines behind containers)
+    const g = groups.find(g => g.c === it || (it.kind === "text" && inside(it, g.c) && g.title !== norm(it.text)));
+    if (g) return g.title;
+    if (it.text && words(it.text) <= 12) return it.paras.map(p => norm(p.text)).join(", ");
+    const lab = txt.find(t => inside(t, it) && words(t.text) <= 10); return lab ? norm(lab.text) : null;
+  };
+  const edges = [];
+  for (const l of s.items.filter(i => i.kind === "line" && i.st && i.end)) {
+    const a = nameOf(byId[l.st]), b = nameOf(byId[l.end]);
+    if (a && b && a !== b) edges.push(`${a} → ${b}`);
+  }
+  const steps = txt.filter(i => ["chevron", "homePlate", "rightArrow", "pentagon"].includes(i.prst)).sort((a, b) => Math.abs(a.y - b.y) < u ? a.x - b.x : a.y - b.y);
+  const lines = [];
+  if (steps.length >= 2) lines.push(`Sequence, in order: ${steps.map((st, k) => `${k + 1}. ${norm(st.text)}`).join(" → ")}`);
+  for (const g of groups) lines.push(`${g.title}: ${g.members.join("; ")}`);
+  if (edges.length) lines.push(`Links drawn between boxes: ${[...new Set(edges)].join("; ")}`);
+  const labels = txt.filter(i => words(i.text) <= 6).length;
+  if (!lines.length || (steps.length < 2 && !groups.length && labels < 3)) return null;
+  return { lines, excerpt: [...steps, ...groups.flatMap(g => [g.c]), ...txt.filter(i => words(i.text) <= 6)].map(i => norm(i.text)).filter(Boolean) };
+}
+
+// The sentence (or line) around a match, trimmed to a readable length
+function contextOf(text, idx, len) {
+  // Sentence ends: newline, or ". " followed by a capital (so "excl. VAT" does not cut)
+  const ends = [...text.matchAll(/\n|[.!?](?=\s+[A-Z])/g)].map(m => m.index);
+  let a = Math.max(0, ...ends.filter(k => k < idx).map(k => k + 1));
+  let b = Math.min(text.length, ...ends.filter(k => k >= idx + len).map(k => k + 1));
+  if (idx - a > 120) a = text.lastIndexOf(" ", idx - 100);
+  if (b - idx > 140) b = text.indexOf(" ", idx + 120) + 1 || b;
+  return (a > 0 && text[a - 1] !== "\n" && text[a] !== "\n" && text[a - 1] !== "." ? "… " : "") + norm(text.slice(a, b));
+}
+
+function analyse(deck) {
+  const u = CM[deck.kind];
+  const risks = [];
+  const add = (s, r) => risks.push({ ...r, slide: s.n, id: `s${s.n}-${risks.filter(x => x.slide === s.n).length}`, weight: WEIGHT[r.severity] });
+  const amounts = [];
+  for (const s of deck.slides) for (const it of s.items) if (!it.chrome) for (const m of (it.text || "").matchAll(/\b(CHF|EUR|USD|GBP|€|\$|£)\s?(\d[\d'’ .,]*\d|\d)(\s?(k|m|M|mio|million|bn))?/g)) amounts.push({ s: s.n, v: norm(m[0]) });
+
+  for (const s of deck.slides) {
+    const content = contentItems(s);
+    const text = s.items.filter(i => !i.chrome).map(i => i.text || "").join("\n");
+
+    // Placeholders left from anonymisation or drafting
+    const PH = /\b(?:[A-Z]{2,4}\s)?(X{3,}|x{3,})\b|lorem ipsum|\[(?:insert|client|name|tbd|xx)[^\]]*\]/gi;
+    const ph = [...text.matchAll(PH)];
+    if (ph.length) {
+      const ctx = [];
+      for (const it of s.items.filter(i => !i.chrome && i.text && PH.test(i.text))) {
+        PH.lastIndex = 0;
+        if (it.kind === "table") {
+          const rows = it.rows.filter(r => r.some(c => /^(x{3,}|X{3,})$/.test(c)));
+          ctx.push(`Table “${it.rows[0].filter(Boolean).slice(0, 3).join(" / ")}…”: ${it.rows.flat().filter(c => /^(x{3,}|X{3,})$/i.test(c)).length} cells hold a placeholder (rows ${rows.map(r => r[0] || "total").join(", ")})`);
+        } else {
+          for (const m of it.text.matchAll(PH)) ctx.push(contextOf(it.text, m.index, m[0].length));
+        }
+        PH.lastIndex = 0;
+      }
+      ctx.splice(0, ctx.length, ...[...new Set(ctx)].slice(0, 5));
+      const money = ph.some(m => /^(CHF|EUR|USD|GBP)/.test(m[0]));
+      const real = [...new Set(amounts.filter(a => !/x{3,}/i.test(a.v)).map(a => `${a.v} (slide ${a.s})`))];
+      add(s, { type: "Placeholder left in", severity: "high", title: `${ph.length} placeholder${ph.length > 1 ? "s" : ""} (${[...new Set(ph.map(m => m[0]))].slice(0, 3).join(", ")}) still in the text`,
+        ai_reads: ctx.join("\n"),
+        lost: "An assistant repeats placeholders as if they were content. Asked about the fee or the addressee, it will answer “XXXX” or say the information is missing." + (money && real.length ? " The deck states the real figure elsewhere, so the answers also contradict each other." : " Fill them in the source deck before sending."),
+        proposal: `Note for readers: the passages below on slide ${s.n} contain unfilled placeholders and must not be read as values:\n${ctx.map(c => "• " + c).join("\n")}` + (money && real.length ? `\nThe amounts stated in this proposal are: ${real.join(", ")}.` : "") });
+    }
+
+    // Visual timelines (Gantt drawn with shapes or coloured cells)
+    for (const tl of detectTimeline(s, u)) {
+      add(s, { type: "Visual timeline", severity: "high", title: `Gantt chart: ${tl.lines.length} dated items exist only as shapes`,
+        ai_reads: tl.table.text.slice(0, 400),
+        lost: "The extractor returns the calendar grid (month names, week numbers) and the labels, but not where the bars and milestones sit. An assistant cannot say when kick-off, fieldwork or reporting happen.",
+        proposal: `Timeline shown on slide ${s.n}${tl.table.rows[0] ? "" : ""}:\n${tl.lines.map(l => "• " + l).join("\n")}` });
+      tl.table.timeline = true;
+    }
+
+    // Charts: values live in bar heights
+    for (const c of content.filter(i => i.kind === "chart" && i.chart && i.chart.series.length)) {
+      add(s, { type: "Numbers in a chart", severity: c.chart.labels ? "low" : "high", title: `${c.chart.type} chart${c.chart.title ? " “" + c.chart.title + "”" : ""}${c.chart.labels ? "" : " without data labels"}`,
+        ai_reads: c.chart.labels ? rawOf(c) : "[chart]",
+        lost: c.chart.labels ? "Values are extracted without their series and categories, so numbers float free of their meaning." : "The figures exist only as bar heights. Asked for the numbers, an assistant answers “not specified”.",
+        proposal: `Data of the chart${c.chart.title ? " “" + c.chart.title + "”" : ""} on slide ${s.n}:\n${chartLines(c.chart).map(l => "• " + l).join("\n")}` });
+    }
+
+    // Tables whose cell relationships flatten into word soup
+    for (const t of content.filter(i => i.kind === "table" && !i.timeline && i.rows.length >= 3 && Math.max(...i.rows.map(r => r.length)) >= 3)) {
+      const cells = t.rows.flat().filter(Boolean);
+      const short = cells.filter(c => c.length <= 4).length / Math.max(1, cells.length);
+      const cols = Math.max(...t.rows.map(r => r.length));
+      if (cols < 4 && short < 0.4) continue;
+      const head = t.rows[0];
+      const lines = t.rows.slice(1).filter(r => r.some(Boolean)).map(r => {
+        const k0 = r.findIndex(Boolean);
+        return `${r[k0]}: ` + r.slice(k0 + 1).map((v, k) => `${head[k0 + k + 1] || "col " + (k0 + k + 2)} = ${v || "—"}`).join("; ");
+      });
+      add(s, { type: "Complex table", severity: short >= 0.4 ? "high" : "medium", title: `${t.rows.length}×${cols} table read as one line of words`,
+        ai_reads: t.text.slice(0, 400),
+        lost: "Row and column headers are separated from the values. Models regularly attach values to the wrong row or column, which matters when the table holds rates, shares or responsibilities.",
+        proposal: `Table on slide ${s.n}, row by row:\n${lines.map(l => "• " + l).join("\n")}` });
+    }
+
+    // Diagrams: groups, links and sequences carried by shapes
+    const dg = deck.kind === "pptx" ? detectDiagram(s, u) : null;
+    if (dg) add(s, { type: "Diagram, no text", severity: "medium", title: "Structure carried by boxes, lines and arrows",
+      ai_reads: dg.excerpt.join(" ").slice(0, 400),
+      lost: "The extractor returns the labels as a flat list. Who belongs to which group, what links to what, and the order of steps are lost.",
+      proposal: `Diagram on slide ${s.n}, as text:\n${dg.lines.map(l => "• " + l).join("\n")}` });
+    if (deck.kind === "pdf" && s.paths > 40 && s.items.filter(b => words(b.text) <= 4).length >= 6)
+      add(s, { type: "Diagram, no text", severity: "medium", title: `Vector diagram (${s.paths} drawn paths) with short labels`,
+        ai_reads: s.items.filter(b => words(b.text) <= 4).map(b => norm(b.text)).join(" ").slice(0, 400),
+        lost: "Arrows, boxes and lines carry the meaning; the extractor only sees scattered labels.",
+        proposal: `Diagram on slide ${s.n}: [describe how these elements relate: ${s.items.filter(b => words(b.text) <= 4).slice(0, 8).map(b => norm(b.text)).join(", ")}]` });
+
+    // Pictures without a text alternative
+    const pics = s.items.filter(i => i.kind === "pic" && !i.chrome && i.w > u * 3 && i.h > u * 2);
+    for (const p of pics) add(s, { type: "Text in image", severity: p.descr ? "low" : "medium", title: p.descr ? "Picture with alt text only" : `Picture without alternative text (${p.name || "image"})`,
+      ai_reads: "[image]" + (p.descr ? ` alt: ${p.descr}` : " — no text layer —"),
+      lost: "Anything written or shown in the picture (a quote, a screenshot, a logo wall, a figure) is invisible to a text extractor.",
+      proposal: p.descr ? `Image on slide ${s.n}: ${p.descr}` : `Image on slide ${s.n}: [describe what the image shows, and copy any text or figures it contains]` });
+    if (deck.kind === "pdf" && s.imgCoverage > 0.25 && words(s.raw) < 60)
+      add(s, { type: "Text in image", severity: "high", title: `Images cover ${Math.round(s.imgCoverage * 100)}% of the page, little text`,
+        ai_reads: s.raw.slice(0, 300) || "(no text)", lost: "The message of this page is inside images. A text extractor returns almost nothing.",
+        proposal: `Page ${s.n}: [describe what the images show, and copy any text or figures they contain]` });
+
+    // Reading order: extractor order differs from the order a reader follows
+    const subst = content.filter(i => i.kind === "text" && words(i.text) >= 12);
+    if (subst.length >= 2) {
+      const visual = xyCut(content, u * 0.1).filter(i => subst.includes(i));
+      const stream = [...subst].sort((a, b) => a.order - b.order);
+      // Only a column swap matters: a block to the right is extracted before a block to its left on the same band
+      const sideBySide = (a, b) => a.x + a.w <= b.x + u * 0.2 && a.y < b.y + b.h && b.y < a.y + a.h;
+      const swapped = subst.some(a => subst.some(b => sideBySide(a, b) && b.order < a.order));
+      if (swapped) {
+        const head = i => { const f = i.paras[0]?.text || i.text; return norm(f).split(" ").slice(0, 8).join(" ") + (words(f) > 8 ? "…" : ""); };
+        add(s, { type: "Ambiguous reading order", severity: "medium", title: "Columns are extracted in the wrong order",
+          ai_reads: stream.map((i, k) => `${k + 1}. ${head(i)}`).join("\n"),
+          lost: "The extractor follows the order in which boxes were created, not the layout. Paragraphs from different columns get chained, so an assistant attaches points to the wrong heading.",
+          proposal: `Slide ${s.n} reads in this order: ${visual.map((i, k) => `(${k + 1}) “${head(i)}”`).join(", ")}.` });
+      }
+    }
+  }
+
+  // Acronyms never defined in the deck: one glossary item, attached where they are densest
+  const undef = findAcronyms(deck.slides);
+  if (undef.length >= 2) {
+    const tally = {}; undef.forEach(a => a.slides.forEach(n => tally[n] = (tally[n] || 0) + a.count));
+    const host = deck.slides.find(s => s.n === +Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0]);
+    undef.sort((a, b) => a.term.localeCompare(b.term));
+    add(host, { type: "Acronyms & jargon", severity: undef.length >= 5 ? "high" : "medium", title: `${undef.length} acronyms used but never defined`,
+      ai_reads: undef.map(a => `${a.term} (slide${a.slides.size > 1 ? "s" : ""} ${[...a.slides].join(", ")})`).join(", "),
+      lost: "Generic assistants guess expansions, and guesses differ between tools. Summaries end up with invented meanings for key terms.",
+      proposal: "Glossary for this proposal:\n" + undef.map(a => `• ${a.term}: ${ACRONYMS[a.term] || ACRONYMS[a.term.replace(/s$/, "")] || "[definition to add]"}`).join("\n") });
+  }
+
+  risks.sort((a, b) => a.slide - b.slide);
+  deck.slides.forEach(s => { s.content = contentMd(s, u); });
+  const base = Math.max(15, 100 - risks.reduce((a, r) => a + r.weight, 0));
+  return { risks, base };
+}
+
+/* ============================================================================
+   5. UI
+   ========================================================================== */
+const S = { stage: 0, reached: 0, deck: null, risks: [], base: 100, status: {}, edits: {}, cur: 0, tab: "md", copied: false, logs: [], scanned: 0, error: null, over: false };
+const T = { ink: "#1c2530", soft: "#56606b", red: "oklch(0.56 0.13 35)", teal: "oklch(0.56 0.13 190)" };
+const $main = document.getElementById("main"), $nav = document.getElementById("nav"), $file = document.getElementById("file");
+
+function set(p) { Object.assign(S, p); render(); }
+function go(stage) { set({ stage, reached: Math.max(S.reached, stage), copied: false }); window.scrollTo(0, 0); }
+const text = r => S.edits[r.id] ?? r.proposal;
+function score() {
+  const total = S.risks.reduce((a, r) => a + r.weight, 0);
+  if (!total) return 100;
+  const done = S.risks.reduce((a, r) => a + (S.status[r.id] ? r.weight : 0), 0);
+  return Math.round(S.base + (100 - S.base) * done / total);
+}
+
+async function start(file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (!["pptx", "pdf"].includes(ext)) return set({ error: "Only .pptx and .pdf files are supported." });
+  S.logs = []; S.status = {}; S.edits = {}; S.cur = 0; S.scanned = 0; S.error = null; S.deck = null; S.risks = [];
+  go(1);
+  const t0 = performance.now();
+  const log = (t, warn) => { S.logs.push({ t: ((performance.now() - t0) / 1000).toFixed(1) + "s", t2: t, warn }); render(); };
+  try {
+    log(`Opened ${file.name} · ${(file.size / 1048576).toFixed(1)} MB`);
+    await sleep(50);
+    const deck = ext === "pptx" ? await readPptx(file) : await readPdf(file);
+    deck.filename = file.name;
+    S.deck = deck;
+    const nWords = deck.slides.reduce((a, s) => a + words(s.raw), 0);
+    log(`Text layer extracted · ${deck.slides.length} slides · ${nWords.toLocaleString("en")} words`);
+    const chrome = new Set(deck.slides.flatMap(s => s.items.filter(i => i.chrome && i.text && words(i.text) > 1).map(i => norm(i.text)))).size;
+    if (chrome) log(`Ignoring ${chrome} element(s) repeated on every slide (footer, navigation)`);
+    log("Rebuilding reading order per slide");
+    const { risks, base } = analyse(deck);
+    for (let i = 1; i <= deck.slides.length; i++) { S.scanned = i; render(); await sleep(Math.max(15, 900 / deck.slides.length)); }
+    const byType = {};
+    risks.forEach(r => byType[r.type] = (byType[r.type] || 0) + 1);
+    for (const [k, v] of Object.entries(byType)) log(`Found ${v} × ${k.toLowerCase()}`, true);
+    S.risks = risks; S.base = base;
+    log(`Survey complete · ${risks.length} area${risks.length === 1 ? "" : "s"} of terra incognita`, risks.length > 0);
+    set({ done: true });
+  } catch (e) {
+    console.error(e);
+    log("Could not read this file: " + (e.message || e), true);
+    set({ error: "Could not read this file. Is it a valid, non-password-protected .pptx or .pdf?" });
+  }
+}
+
+/* ---- Output package ---- */
+function title() { const d = S.deck; return d.slides[0] ? longestTitle(d.slides[0]) : d.filename; }
+function longestTitle(s) {
+  const first = i => norm(i.paras?.[0]?.text || i.text);
+  const t = s.items.filter(i => i.kind === "text" && !i.chrome && words(first(i)) >= 3 && words(first(i)) <= 20).sort((a, b) => words(first(b)) - words(first(a)))[0];
+  return t ? first(t) : s.title;
+}
+function buildMd() {
+  const d = S.deck, st = S.status;
+  let o = `# ${title()}\n## AI-ready edition · source: ${d.filename} (${d.slides.length} slides)\n\n`;
+  o += "> Reading guide for AI assistants: this file restates the proposal as explicit text, slide by slide, in the order a human reads it. Statements marked “Clarification” were reviewed by the authors and are the authoritative reading of the corresponding visual (timeline, diagram, table, chart or image).\n\n";
+  for (const s of d.slides) {
+    o += `## Slide ${s.n} — ${s.title}\n\n`;
+    if (s.content) o += s.content + "\n\n";
+    for (const r of S.risks.filter(r => r.slide === s.n && st[r.id] === "confirmed")) o += `**Clarification (${r.type.toLowerCase()}):** ${text(r).replace(/\n/g, "\n")}\n\n`;
+  }
+  return o.trim() + "\n";
+}
+function buildJson() {
+  const d = S.deck, st = S.status;
+  return JSON.stringify({
+    document: { title: title(), source: d.filename, format: d.kind, slides: d.slides.length, ai_readiness: score(), generated: new Date().toISOString().slice(0, 10) },
+    slides: d.slides.map(s => ({ slide: s.n, title: s.title, content: s.content,
+      clarifications: S.risks.filter(r => r.slide === s.n && st[r.id] === "confirmed").map(r => ({ issue: r.type, statement: text(r) })) }))
+  }, null, 2);
+}
+function download(name, content, mime) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---- Views ---- */
+function render() {
+  const labels = ["Embark", "Survey", "Map", "Chart the unknown", "Package"];
+  $nav.innerHTML = labels.map((l, i) => `<button data-go="${i}" class="${i === S.stage ? "on" : ""}" ${i > S.reached || (i === 3 && !S.risks.length) ? "disabled" : ""}><span>0${i + 1}</span><span>${l}</span></button>`).join("");
+  $main.innerHTML = [embark, survey, map, review, pack][S.stage]();
+  if (S.stage === 3) { const ta = $main.querySelector("textarea"); if (ta && S.focus) { ta.focus(); ta.setSelectionRange(S.focus, S.focus); S.focus = null; } }
+}
+
+function embark() {
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:48px;padding:56px 32px 64px;max-width:1280px;margin:0 auto;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div class="eyebrow red">Before it reaches the client's copilot</div>
+      <h1 style="font-size:clamp(48px,6vw,84px);line-height:.98;letter-spacing:-.01em;text-wrap:balance">Every proposal has <em>terra incognita.</em></h1>
+      <p style="margin:0;font-size:18px;line-height:1.55;color:#3b4550;max-width:520px;text-wrap:pretty">Diagrams without words, numbers trapped in charts, timelines drawn as shapes. Your reader understands them. Their AI assistant doesn't. Portolan surveys the deck, maps what a model will misread, and lets you chart it before sending.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:28px;padding-top:8px;font-family:var(--mono);font-size:12px;color:var(--soft)">
+        <div style="display:flex;align-items:center;gap:8px"><span class="dot" style="background:var(--teal)"></span>Charted: machine-readable</div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="dot hatch"></span>Terra incognita: likely misread</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <button class="drop ${S.over ? "over" : ""}" data-pick id="drop">
+        <div style="width:44px;height:44px;border:1.5px solid var(--ink);transform:rotate(45deg);display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:var(--ink);border-radius:50%"></div></div>
+        <div style="font-family:var(--serif);font-size:32px">Drop a proposal to survey</div>
+        <div class="mono" style="font-size:12px;letter-spacing:.08em;color:var(--soft)">.PPTX · .PDF — or click to choose a file</div>
+      </button>
+      ${S.error ? `<div class="err">${esc(S.error)}</div>` : ""}
+      <div class="note">
+        <div class="eyebrow" style="font-size:11px">Runs entirely in your browser</div>
+        <div>The file is never uploaded. No AI model is called: the survey applies deterministic rules to the slide structure (positions, shapes, tables, connectors), so the same deck always gives the same map. PPTX gives the richest reading; PDF gives real page previews.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function survey() {
+  const d = S.deck, n = d ? d.slides.length : 0;
+  const pct = !d ? 5 : Math.round(10 + 90 * S.scanned / n);
+  const riskSlides = new Set(S.risks.map(r => r.slide));
+  const tiles = d ? d.slides.map(s => {
+    const done = S.scanned >= s.n, risk = done && S.done && riskSlides.has(s.n);
+    return `<div class="tile ${done ? "done" : ""} ${risk ? "risk" : ""}">${String(s.n).padStart(2, "0")}</div>`;
+  }).join("") : "";
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:48px;padding:48px 32px;max-width:1280px;margin:0 auto;align-content:start">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div class="eyebrow">Survey in progress · ${S.done ? 100 : pct}%</div>
+      <h2 style="font-size:clamp(40px,4.5vw,60px);line-height:1">Reading the deck the way <em>a model</em> would.</h2>
+      <div class="meter" style="height:2px"><div style="width:${S.done ? 100 : pct}%;background:var(--ink)"></div></div>
+      <div class="log">${S.logs.map(l => `<div><span class="t">${l.t}</span><span class="${l.warn ? "w" : ""}">${esc(l.t2)}</span></div>`).join("")}</div>
+      ${S.done ? `<button class="btn" data-go="2" style="align-self:flex-start;margin-top:8px">Unfold the map →</button>` : ""}
+      ${S.error ? `<button class="btn ghost" data-go="0" style="align-self:flex-start">← Try another file</button>` : ""}
+    </div>
+    <div class="tiles">${tiles}</div>
+  </div>`;
+}
+
+function map() {
+  const d = S.deck, st = S.status, sc = score();
+  const pending = S.risks.filter(r => !st[r.id]).length;
+  const cards = d.slides.map(s => {
+    const rs = S.risks.filter(r => r.slide === s.n), open = rs.filter(r => !st[r.id]);
+    const first = S.risks.indexOf(open[0] || rs[0]);
+    const types = [...new Set(open.map(r => r.type))];
+    return `<div>
+      <button class="thumb" ${rs.length ? `data-open="${first}" style="cursor:pointer"` : `style="cursor:default"`}>
+        <img src="${s.thumb}" alt="Slide ${s.n}" loading="lazy">
+        ${open.length ? `<div class="veil"><span class="badge">${open.length}</span><span style="font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.15">${esc(types.slice(0, 2).join(" · "))}</span></div>` : ""}
+        ${rs.length && !open.length && rs.some(r => st[r.id] === "confirmed") ? `<span class="check">✓</span>` : ""}
+      </button>
+      <div class="cap"><span>${String(s.n).padStart(2, "0")} · ${esc(s.title)}</span><span style="color:${open.length ? "var(--red-d)" : "var(--soft)"}">${rs.length ? (open.length ? "unknown" : "charted") : "clear"}</span></div>
+    </div>`;
+  }).join("");
+  return `<div style="display:flex;flex-direction:column;gap:24px;padding:32px;max-width:1360px;margin:0 auto">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="eyebrow">Chart of ideas · ${esc(d.filename)} · ${d.slides.length} slides${d.kind === "pptx" ? " · structural previews" : ""}</div>
+      <h2 style="max-width:720px;font-size:clamp(36px,4vw,54px);line-height:1.08">${pending ? `${pending} region${pending > 1 ? "s" : ""} a model will likely misread.` : S.risks.length ? "Fully charted. Ready to send." : "Nothing to chart: this deck reads cleanly."}</h2>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px 28px">
+      ${scoreBlock(sc)}
+      <button class="btn" data-next>${pending ? "Chart the unknown →" : "Build the package →"}</button>
+    </div>
+    <div class="thumbs">${cards}</div>
+  </div>`;
+}
+
+function scoreBlock(sc) {
+  const col = sc >= 85 ? T.teal : sc >= 65 ? T.ink : T.red;
+  return `<div style="display:flex;flex-direction:column;gap:6px;min-width:200px">
+    <div class="eyebrow" style="font-size:11px;display:flex;justify-content:space-between;gap:16px"><span>AI readiness</span><span>${sc >= 85 ? "Ready to sail" : sc >= 65 ? "Mostly charted" : "High misread risk"}</span></div>
+    <div style="display:flex;align-items:baseline;gap:6px"><span style="font-family:var(--serif);font-size:56px;line-height:.9">${sc}</span><span class="mono" style="font-size:13px;color:var(--soft)">/ 100</span></div>
+    <div class="meter"><div style="width:${sc}%;background:${col}"></div></div>
+  </div>`;
+}
+
+function review() {
+  const st = S.status, r = S.risks[S.cur], s = S.deck.slides[r.slide - 1];
+  const pending = S.risks.filter(x => !st[x.id]).length, cs = st[r.id];
+  const side = S.risks.map((x, i) => `<button class="side ${i === S.cur ? "on" : ""}" data-cur="${i}">
+      <span class="n" style="background:${st[x.id] ? T.teal : i === S.cur ? T.ink : T.red}">${i + 1}</span>
+      <span><small>Slide ${x.slide} · ${esc(x.type)}</small><span>${esc(x.title)}</span></span></button>`).join("");
+  return `<div class="review">
+    <aside>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:24px 24px 16px;border-bottom:1px solid var(--line)">
+        <div class="eyebrow" style="font-size:11px">Terra incognita · ${pending} left</div>
+        <div style="display:flex;align-items:baseline;gap:6px"><span style="font-family:var(--serif);font-size:40px;line-height:1">${score()}</span><span class="mono" style="font-size:12px;color:var(--soft)">/ 100 readiness</span></div>
+      </div>${side}
+    </aside>
+    <section style="display:flex;flex-direction:column;gap:24px;padding:28px 32px 40px;min-width:0">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="eyebrow red">No. ${S.cur + 1} · Slide ${r.slide} · ${esc(r.type)} · ${r.severity}</div>
+          <h2 style="font-size:clamp(28px,3vw,40px);line-height:1.05;text-wrap:balance">${esc(r.title)}</h2>
+        </div>
+        <div style="display:flex;gap:8px"><button class="btn ghost" data-step="-1" style="padding:12px 16px">←</button><button class="btn ghost" data-step="1" style="padding:12px 16px">→</button></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:28px">
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <div class="eyebrow" style="font-size:11px">${S.deck.kind === "pptx" ? "Original · structural preview" : "Original · what your reader sees"}</div>
+          <div class="slidebox"><img src="${s.thumb}" alt="Slide ${s.n}"></div>
+          <div class="eyebrow" style="font-size:11px">Raw extraction · what a model gets today</div>
+          <pre class="raw">${esc(r.ai_reads)}</pre>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <div class="eyebrow" style="font-size:11px">Lost in translation</div>
+          <p style="margin:0;font-family:var(--serif);font-size:23px;line-height:1.25;text-wrap:pretty">${esc(r.lost)}</p>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:8px">
+            <div class="eyebrow teal" style="font-size:11px">Charted statement · editable</div>
+            <div class="mono" style="font-size:11px;color:${cs ? "var(--teal-d)" : "var(--red-d)"}">${cs === "confirmed" ? "✓ Charted" : cs === "dismissed" ? "Kept as is" : "Awaiting your call"}</div>
+          </div>
+          <textarea class="stmt" rows="10" data-edit>${esc(text(r))}</textarea>
+          <div style="font-size:13px;line-height:1.5;color:var(--soft)">Charted statements are added next to slide ${r.slide} in the AI-ready package, so any assistant reads them as explicit text. Anything in [brackets] is for you to complete.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:4px">
+            <button class="btn teal" data-status="confirmed">Chart it ✓</button>
+            <button class="btn ghost" data-status="dismissed">Reads fine as is</button>
+            <button class="btn link" data-reset>Restore suggestion</button>
+          </div>
+          ${!pending ? `<button class="btn" data-go="4" style="margin-top:12px;background:var(--teal);text-align:left">All territory charted — build the package →</button>` : ""}
+        </div>
+      </div>
+    </section>
+  </div>`;
+}
+
+function pack() {
+  const d = S.deck, charted = S.risks.filter(r => S.status[r.id] === "confirmed").length;
+  const out = S.tab === "md" ? buildMd() : buildJson();
+  const base = slug(d.filename) + "_ai-ready";
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:40px;padding:40px 32px 56px;max-width:1360px;margin:0 auto;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:22px;max-width:440px">
+      <div class="eyebrow teal">The AI-ready package</div>
+      <h2 style="font-size:clamp(40px,4.5vw,60px);line-height:1">Same proposal. <em>No blank spaces on the map.</em></h2>
+      <div style="display:flex;gap:32px;padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+        <div><div class="eyebrow" style="font-size:11px">Before</div><div style="font-family:var(--serif);font-size:48px;line-height:1;color:var(--red-d)">${S.base}</div></div>
+        <div><div class="eyebrow" style="font-size:11px">After</div><div style="font-family:var(--serif);font-size:48px;line-height:1;color:var(--teal-d)">${score()}</div></div>
+        <div><div class="eyebrow" style="font-size:11px">Charted</div><div style="font-family:var(--serif);font-size:48px;line-height:1">${charted}/${S.risks.length}</div></div>
+      </div>
+      <p style="margin:0;font-size:15.5px;line-height:1.6;color:#3b4550">Send it alongside the PDF. The Markdown is for people pasting into a chat assistant; the JSON is for clients who index proposals in their own tools. Both follow the slide order, so every statement traces back to the original.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <button class="btn" data-dl="md">Download .md</button>
+        <button class="btn ghost" data-dl="json">Download .json</button>
+      </div>
+      <button class="btn link" data-go="2" style="align-self:flex-start;padding:0">← Back to the map</button>
+    </div>
+    <div style="display:flex;flex-direction:column;border:1px solid rgba(28,37,48,.25);background:var(--card);min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);flex-wrap:wrap">
+        <div class="tabs" style="display:flex;overflow:auto"><button data-tab="md" class="${S.tab === "md" ? "on" : ""}">${base}.md</button><button data-tab="json" class="${S.tab === "json" ? "on" : ""}">${base}.json</button></div>
+        <button class="btn ghost" data-copy style="margin:8px 12px;padding:8px 12px;font-size:11px">${S.copied ? "Copied" : "Copy"}</button>
+      </div>
+      <pre class="out">${esc(out)}</pre>
+    </div>
+  </div>`;
+}
+
+/* ---- Events ---- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button, [data-pick]");
+  if (!b) return;
+  const ds = b.dataset;
+  if ("pick" in ds) $file.click();
+  else if (ds.go !== undefined) { const g = +ds.go; if (g === 3) openRisk(firstOpen()); else if (g === 1 && !S.deck) return; else go(g); }
+  else if (ds.open !== undefined) openRisk(+ds.open);
+  else if ("next" in ds) { const i = firstOpen(); i >= 0 ? openRisk(i) : go(4); }
+  else if (ds.cur !== undefined) set({ cur: +ds.cur });
+  else if (ds.step) set({ cur: (S.cur + +ds.step + S.risks.length) % S.risks.length });
+  else if (ds.status) setStatus(ds.status);
+  else if ("reset" in ds) { delete S.edits[S.risks[S.cur].id]; render(); }
+  else if (ds.tab) set({ tab: ds.tab, copied: false });
+  else if ("copy" in ds) { navigator.clipboard?.writeText(S.tab === "md" ? buildMd() : buildJson()).catch(() => {}); set({ copied: true }); }
+  else if (ds.dl) { const base = slug(S.deck.filename) + "_ai-ready"; ds.dl === "md" ? download(base + ".md", buildMd(), "text/markdown") : download(base + ".json", buildJson(), "application/json"); }
+});
+document.addEventListener("input", e => { if (e.target.matches("[data-edit]")) S.edits[S.risks[S.cur].id] = e.target.value; });
+$file.addEventListener("change", () => { if ($file.files[0]) start($file.files[0]); $file.value = ""; });
+document.addEventListener("dragover", e => { e.preventDefault(); if (S.stage === 0 && !S.over) set({ over: true }); });
+document.addEventListener("dragleave", e => { if (!e.relatedTarget && S.over) set({ over: false }); });
+document.addEventListener("drop", e => { e.preventDefault(); S.over = false; const f = e.dataTransfer.files[0]; if (f && S.stage === 0) start(f); else render(); });
+
+function firstOpen() { return S.risks.findIndex(r => !S.status[r.id]); }
+function openRisk(i) { if (i < 0) i = 0; S.cur = i; go(3); }
+function setStatus(v) {
+  const r = S.risks[S.cur];
+  S.status[r.id] = v;
+  const next = S.risks.findIndex((x, i) => i > S.cur && !S.status[x.id]);
+  const any = firstOpen();
+  set({ cur: next >= 0 ? next : any >= 0 ? any : S.cur });
+}
+
+render();
+</script>
+</body>
+</html>
